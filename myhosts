@@ -1,0 +1,2 @@
+# hostfile for mpiexec
+localhost slots=10

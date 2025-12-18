@@ -1,0 +1,687 @@
+DESIGN-IMPLEMENTATION ASK1
+
+Σχεδιασμός επικοινωνίας μεταξύ των διεργασιών που τρέχουν παράλληλα το πρόγραμμα στους επεξεργαστές:
+
+Χρησιμοποιούμε τις συναρτήσεις MPI_Init για την αρχικοποίηση του περιβάλλοντος MPI, 
+MPI_Comm_rank για να έχουμε πρόσβαση στους αριθμούς τάξεις των διεργασιών, 
+MPI_Comm_size για το σύνολο των διεργασιών.
+
+H διεργασία 0 στέλνει αρχικά σε όλες τις υπόλοιπες διεργασίες το σύνολο των αριθμών του διανύσματος 
+που έχει επιλέξει ο χρήστης.
+Ο χρήστης πληκτρολογεί τους αριθμούς που θα έχει το διάνυσμα.
+
+Φτιάξαμε συνάρτηση Abort η οποία δέχεται 3 παραμέτρους, τον communicator, το αποτέλεσμα
+της MPI function (MPI_Send,MPI_Recv) και ένα string το οποίο θα το περάσουμε ως παράμετρο
+στην perror για να μας εμφανίσει το σφάλμα.
+Με αυτή την συνάρτηση αν προκύψει σφάλμα διακόπτεται το MPI περιβάλλον.
+
+(α)
+
+Σχεδίαση:
+1. Χωρίζουμε το σύνολο των αριθμών του διανύσματος σε όλες τις διεργασίες με ίση κατανομή αριθμών.
+2. Κάθε διεργασία υλοποιεί το δικό της άθροισμα τοπικά.
+3. Κάθε διεργασία στέλνει το άθροισμα της στην διεργασία 0.
+4. Η διεργασία 0 λαμβάνει τα αποτελέσματα των διεργασιών και υπολογίζει το τελικό άθροισμα.
+
+Υλοποίηση:
+1. Υλοποιούμε την μεθοδολογία για το σύνολο στοιχείων που δεν είναι ακέραιο πολλαπλάσιο των επεξεργαστών.
+2. Κάθε διεργασία υπολογίζει το άθροισμα της με βάση τα στοιχεία του τοπικού πίνακα της.
+
+Η υλοποίηση πραγματοποιείται με χρήση των συναρτήσεων MPI_Send για την αποστολή δεδομένων, 
+MPI_Recv για την παραλαβή μηνυμάτων. 
+
+(β) 
+
+Σχεδίαση:
+1. Κάθε διεργασία υπολογίζει το τοπικό της μέγιστο.
+2. Κάθε διεργασία στέλνει το τοπικό της μέγιστο στην διεργασία 0.
+3. Η διεργασία 0 λαμβάνει τα τοπικά μέγιστα των υπόλοιπων διεργασιών.
+4. Η διεργασία 0 υπολογίζει το τελικό μέγιστο.
+
+Υλοποίηση:
+Ξέρει κάθε διεργασία το σύνολο των αριθμών του διανύσματος
+και ποιους αριθμούς θα χρησιμοποιήσει για τον τοπικό υπολογισμό.
+
+1. Κάθε διεργασία θα υπολογίζει τοπικά τον μεγαλύτερο από τους αριθμούς που έχει στην διαθεσή του.
+2. Το τοπικό maximum θα το στέλνει κάθε διεργασία στην διεργασία 0.
+3. Στην διεργασία 0 θα αρχικοποιήσουμε το max με την μεγαλύτερη τιμή των αριθμών που υπολόγισε τοπικά η διεργασία 0.
+4. Κάθε φορά που θα λαμβάνει η διεργασία 0 ένα τοπικό maximum θα ελέγχει αν είναι μεγαλύτερο από το τρέχον maximum που έχει βρει μέχρι εκείνη την στιγμή.
+5. Τέλος, εμφανίζουμε τον μεγαλύτερο αριθμό του διανύσματος.
+
+(γ) Σχεδίαση:
+
+   1. Αφού η διεργασία 0 υπολογίσει την μέση τιμή τότε μπορεί να την στείλει σε όλες τις 
+    	υπόλοιπες διεργασίες. 
+    	Πριν η διεργασία 0 στείλει την μέση τιμή υπολογίζει το δικό της υποάθροισμα διασποράς (var).
+   2. Κάθε διεργασία που θα λάβει την μέση τίμη θα υπολογίσει το υποάθροισμα διασποράς της χρησιμοποιώντας 
+      τους δικούς της αριθμούς και την μέση τιμή.
+   3. Κάθε διεργασία πρέπει να στέλνει το υποάθροισμα διασποράς της στην διεργασία 0.
+   4. Η διεργασία 0 θα υπολογίσει την διασπορά αθροίζοντας τα υποαθροίσματα διασπορών που θα λάβει από τις
+      υπόλοιπες διεργασίες.
+   5. Η διεργασία 0 εμφανίζει την συνολική διασπορά (var).
+
+   Υλοποίηση:
+
+   1. Χρησιμοποιούμε for loop για να υπολογίσουμε για να υπολογίσουμε το 
+      τοπικό άθροισμα διασποράς.
+      Χρησιμοποιούμε for loop για να στείλει η διεργασία 0 την μέση τιμή στις υπόλοιπες διεργασίες
+      με την συνάρτηση MPI_Send.
+   2. Κάθε διεργασία θα λάβει την μέση τιμή με την συνάρτηση MPI_Recv 
+      ώστε να υπολογίσει το δικό της άθροισμα διασποράς.
+   3. Κάθε διεργασία χρησιμοποιήσει την συνάρτηση MPI_Send για να στείλει το υποάθροισμα της.
+   4. Η διεργασία 0 σε for loop χρησιμοποιήσει την συνάρτηση MPI_Recv για να λάβει κάθε υποάθροισμα
+      διασποράς
+   5. Βρίσκει το συνολικό άθροισμα διασποράς προσθέτοντας τα υποαθροίσματα διασποράς.   
+
+(δ) σχεδίαση:
+
+    1. Η διεργασία 0 θα υπολογίσει τα δικά της στοιχεία αφού γνωρίζει την μέγιστη τιμή.
+      Αυτά τα στοιχεία θα τα αποθηκεύει σε ένα τοπικό πίνακα. 
+      Κάθε στοιχείο το αποθηκεύουμε σε πίνακα κοινής μνήμης. 
+    2. Πρέπει η διεργασία 0 να στείλει την μέγιστη τιμή στις υπόλοιπες διεργασίες. 
+    3. Σε κάθε διεργασία έχουν κατανεμηθεί οι αριθμοί. Κάθε διεργασία θα υπολογίζει τα στοιχεία που έχει
+       στην διάθεση της. Τα στοιχεία κάθε διεργασίας θα αποθηκεύονται σε τοπικό πίνακα. OK
+    4. Κάθε διεργασία πρέπει να στείλει τα στοιχεία του νέου διανύσματος στην διεργασία 0. OK 
+    5. Αποθηκεύουμε τα στοιχεία των επιμέρους διεργασιών σε πίνακα κοινής μνήμης. OK
+    6. Κάθως στέλνονται τα στοιχεία στην διεργασία 0 πρέπει να έχουμε ένα πίνακα ώστε να
+       αποθηκεύουμε τα στοιχεία. OK
+
+   υλοποίηση:
+
+   1. Με χρήση for υπολογίζουμε τους τοπικούς υπολογισμόυς των αριθμών που έχει η διεργασία 0.
+      Μετά βάζουμε τα στοιχεία σε πίνακα κοινής μνήμης.
+   2. Χρησιμοποιούμε for στην διεργασία 0 ώστε να στείλουμε σε κάθε διεργασία την μέγιστη τιμή 
+      με χρήση της συνάρτησης MPI_Send. Οι υπόλοιπες διεργασίες λαμβάνουν τα στοιχεία με χρήση
+      της συνάρτησης MPI_Recv. 
+   3. Ακολουθούμε ακριβώς την ίδια διαδικασία όπως στο βήμα 1. Δεν βάζουμε ακόμη τα στοιχεία σε πίνακα 
+      κοινής μνήμης.
+   4. Χρησιμοποιούμε την MPI_Send στις διεργασίες 1 έως p-1. Η διεργασία 0 χρησιμοποιούμε την
+      MPI_Recv.
+   5-6. Στην διεργασία 0 αποθηκεύουμε τα στοιχεία κάθε διεργασίας σε πίνακα κοινής μνήμης.
+        Εμφανίζουμε τα στοιχεία του νέου διανύσματος καθώς και σε ποιες διεργασίες υπολογίστηκαν.
+
+   Χρησιμοποιούμε τις συναρτήσεις MPI_Send και MPI_Recv για την επικοινωνία των διεργασιών για να 
+   στείλουν και να λάβουν μηνύματα.
+   Χρησιμοποιούμε τοπικό πίνακα για κάθε διεργασία ώστε να αποθηκεύει τα δεδομένα της.
+   Χρησιμοποιούμε πίνακα κοινής μνήμης ώστε να αποθηκεύουμε τα δεδομένα όλων των διεργασιών.
+
+
+   Μενού:
+
+   Σχεδίαση:
+   
+   1. Φτιάχνουμε ένα menu 2 επιλογών, είτε συνεχίζει ο χρήστης είτε σταματάει.
+   2. Ο χρήστης επιλέγει αν θα συνεχίσει ή όχι.
+   3. Αν δώσει μη έγκυρη τιμή εμφανίζεται μήνυμα σφάλματος. Χρειάζεται να ξανά δώσει τιμή μέχρι να είναι έγκυρη.
+   4. Την τιμή που θα δώσει ο χρήστης θα την διαβάσει η διεργασία 0.
+   5. Η διεργασία 0 θα την στείλει σε όλες τις υπόλοιπες διεργασίες.
+   6. Οι υπόλοιπες διεργασίες θα λάβουν την επιλογή του χρήστη.
+
+   Υλοποίηση:
+
+   1. Υλοποιούμε συνάρτηση menu χωρίς παραμέτρους. Επιστρέφει την επιλογή που επιλέγει ο χρήστης.
+   2. Ο χρήστης πληκτρολογεί την επιλογή που επιθυμεί με scanf().
+   3. Χρησιμοποιούμε while ώστε να ελέγχουμε αν ο χρήστης δώσει μη έγκυρη τιμή αρκετές φορές.
+      Διασφαλίζουμε ότι αν δεν δώσει εγκυρή τιμή δεν θα πραγματοποιηθεί μια επιλογή που
+      δεν υπάρχει στο μενού.
+   4. Καλούμε την συνάρτηση menu στην διεργασία 0.
+   5. Χρησιμοποιούμε MPI_Send για να στείλει η διεργασία 0 την επιλογή στις υπόλοιπες διεργασίες.
+   6. Χρησιμοποιούμε MPI_Recv για να λάβουν οι υπόλοιπες διεργασίες την επιλογή από την διεργασία 0.
+   
+   Χρησιμοποιούμε τις συναρτήσεις MPI_Send και MPI_Recv για την επικοινωνία των διεργασιών για να 
+   στείλουν και να λάβουν μηνύματα. 
+   Αν η διεργασία 0 δεν στείλει την επιλογή του χρήστη να σταματήσει (επιλογή 2 από το μενού) τότε
+   η διεργασία 0 θα τελείωσει και οι υπόλοιπες διεργασίες θα συνεχίσουν επειδή θα βλέπουν την
+   προηγούμενη επιλογή τους. 
+   Θα προκύψει deadlock(αδιέξοδο) όταν πρόκειται να ανταλλάξουν μηνύματα οι διεργασίες μεταξύ τους.
+   Έτσι, πρέπει η διεργασία 0 να στείλει την επιλογή του χρήστη στις υπόλοιπες διεργασίες
+   ώστε να συνεχίσουν όλες οι διεργασίες ή να σταματήσουν όλες.
+
+
+   Πλήθος στοιχείων δεν είναι ακέραιο πολλαπλάσιο των επεξεργαστών του συστήματος:
+
+   Σχεδίαση:
+
+   1. Μοιράζουμε τους αριθμούς με βάση το πλήθος των διεργασιών
+      Παρατηρούμε ότι δεν μπορούν να μοιραστούν ισόποσα οι αριθμοί σε όλες τις διεργασίες.
+
+   2. Εφαρμόζουμε την εξής μεθοδολογία:
+
+      α) Βρίσκουμε το ακέραιο μέρος της διαίρεσης.
+         Δεν λαμβάνουμε υπόψη το δεκαδικό μέρος.
+      β) Βρίσκουμε το ακέραιο υπόλοιπο της διαίρεσης.
+
+      γ) Όσες διεργασίες έχουν τάξη μικρότερη του υπολοίπου
+         της διαίρεσης θα πάρουν πλήθος στοιχείων 
+         το ακέραιο μέρος της διαίρεσης με ένα ακόμη επιπλέον στοιχείο.
+      δ) Όσες διεργασίες έχουν τάξη μεγαλύτερη ή ίση του υπολοίπου
+         της διαίρεσης θα πάρουν πλήθος στοιχείων 
+         το ακέραιο μέρος της διαίρεσης.
+
+   Υλοποίηση:
+
+   1. Σε κάθε διεργασία υπολογίζουμε base count(ακέραιο μέρος διαίρεσης) και
+      remainder(υπόλοιπο διαίρεσης).
+      Αν το remainder δεν είναι 0 τότε οι αριθμοί δεν μπορούν να μοιραστούν ισόποσα
+      σε όλες τις διεργασίες.
+
+   2. Υλοποιούμε την παραπάνω μεθοδολογία.
+
+
+Ενδεικτικές Εκτελέσεις:
+
+Η παρακατώ εκτέλεση πραγματοποιείται για 4 διεργασίες
+με μεγέθη πινάκων 8,9,16,17.
+
+Type total numbers for calculation, until 100 numbers 
+8
+
+Type 8 integer numbers 
+1
+2
+3
+4
+5
+6
+7
+8
+
+Process 0 calculate the average of 8 numbers 
+Process 0 calculate the maximum number of 8 numbers 
+ 
+Sum of process 0: 3 
+Max of process 0: 2 
+ 
+Sum of process 1: 7 
+Max of process 1: 4 
+
+Sum of process 2: 11 
+Max of process 2: 6 
+
+Sum of process 3: 15 
+Max of process 3: 8 
+
+Average of array: 4.500000 
+Final max of array: 8 
+ 
+Sub var of process 0: 18.500000 
+Sub var of process 1: 2.500000 
+Sub var of process 2: 2.500000 
+Sub var of process 3: 18.500000 
+Var of array: 42.000000 
+
+Array D: 
+
+Process 0: 49 
+Process 0: 36 
+Process 1: 25 
+Process 1: 16 
+Process 2: 9 
+Process 2: 4 
+Process 3: 1 
+Process 3: 0 
+
+ 
+Menu: 
+1. Continue 
+2. Exit 
+
+Type a choice: 
+1
+
+Type total numbers for calculation, until 100 numbers 
+9
+
+Type 9 integer numbers 
+1
+2
+3
+4
+5
+6
+7
+8
+9
+
+Process 0 calculate the average of 9 numbers 
+Process 0 calculate the maximum number of 9 numbers 
+ 
+Sum of process 0: 6 
+Max of process 0: 3 
+ 
+Sum of process 1: 9 
+Max of process 1: 5 
+
+Sum of process 2: 13 
+Max of process 2: 7 
+
+Sum of process 3: 17 
+Max of process 3: 9 
+
+Average of array: 5.000000 
+Final max of array: 9 
+ 
+Sub var of process 0: 29.000000 
+Sub var of process 1: 1.000000 
+Sub var of process 2: 5.000000 
+Sub var of process 3: 25.000000 
+Var of array: 60.000000 
+
+Array D: 
+
+Process 0: 64 
+Process 0: 49 
+Process 0: 36 
+Process 1: 25 
+Process 1: 16 
+Process 2: 9 
+Process 2: 4 
+Process 3: 1 
+Process 3: 0 
+
+ 
+Menu: 
+1. Continue 
+2. Exit 
+
+Type a choice: 
+16
+
+Error choice!!! 
+Type a choice: 
+1
+
+Type total numbers for calculation, until 100 numbers 
+16
+
+Type 16 integer numbers 
+1
+3
+5
+7
+9
+11
+13
+15
+2
+4
+6
+8
+10
+12
+14
+16
+
+Process 0 calculate the average of 16 numbers 
+Process 0 calculate the maximum number of 16 numbers 
+ 
+Sum of process 0: 16 
+Max of process 0: 7 
+ 
+Sum of process 1: 48 
+Max of process 1: 15 
+
+Sum of process 2: 20 
+Max of process 2: 8 
+
+Sum of process 3: 52 
+Max of process 3: 16 
+
+Average of array: 8.500000 
+Final max of array: 16 
+ 
+Sub var of process 0: 101.000000 
+Sub var of process 1: 69.000000 
+Sub var of process 2: 69.000000 
+Sub var of process 3: 101.000000 
+Var of array: 340.000000 
+
+Array D: 
+
+Process 0: 225 
+Process 0: 169 
+Process 0: 121 
+Process 0: 81 
+Process 1: 49 
+Process 1: 25 
+Process 1: 9 
+Process 1: 1 
+Process 2: 196 
+Process 2: 144 
+Process 2: 100 
+Process 2: 64 
+Process 3: 36 
+Process 3: 16 
+Process 3: 4 
+Process 3: 0 
+
+ 
+Menu: 
+1. Continue 
+2. Exit 
+
+Type a choice: 
+1
+
+Type total numbers for calculation, until 100 numbers 
+17
+
+Type 17 integer numbers 
+2
+4
+6
+8
+10
+12
+14
+16
+1
+3
+5
+7
+9
+11
+13
+15
+17
+
+Process 0 calculate the average of 17 numbers 
+Process 0 calculate the maximum number of 17 numbers 
+ 
+Sum of process 0: 30 
+Max of process 0: 10 
+ 
+Sum of process 1: 43 
+Max of process 1: 16 
+
+Sum of process 2: 24 
+Max of process 2: 9 
+
+Sum of process 3: 56 
+Max of process 3: 17 
+
+Average of array: 9.000000 
+Final max of array: 17 
+ 
+Sub var of process 0: 85.000000 
+Sub var of process 1: 147.000000 
+Sub var of process 2: 56.000000 
+Sub var of process 3: 120.000000 
+Var of array: 408.000000 
+
+Array D: 
+
+Process 0: 225 
+Process 0: 169 
+Process 0: 121 
+Process 0: 81 
+Process 0: 49 
+Process 1: 25 
+Process 1: 9 
+Process 1: 1 
+Process 1: 256 
+Process 2: 196 
+Process 2: 144 
+Process 2: 100 
+Process 2: 64 
+Process 3: 36 
+Process 3: 16 
+Process 3: 4 
+Process 3: 0 
+
+ 
+Menu: 
+1. Continue 
+2. Exit 
+
+Type a choice: 
+2
+
+
+
+
+
+
+
+
+Η παρακατώ εκτέλεση πραγματοποιείται για 6 διεργασίες
+με μεγέθη πινάκων 14,12,20.
+
+Type total numbers for calculation, until 100 numbers 
+14
+
+Type 14 integer numbers 
+2
+4
+6
+8
+10
+12
+14
+1
+3
+5
+7
+9
+11
+13
+
+Process 0 calculate the average of 14 numbers 
+Process 0 calculate the maximum number of 14 numbers 
+ 
+Sum of process 0: 12 
+Max of process 0: 6 
+ 
+Sum of process 1: 30 
+Max of process 1: 12 
+
+Sum of process 2: 15 
+Max of process 2: 14 
+
+Sum of process 3: 8 
+Max of process 3: 5 
+
+Sum of process 4: 16 
+Max of process 4: 9 
+
+Sum of process 5: 24 
+Max of process 5: 13 
+
+Average of array: 7.500000 
+Final max of array: 14 
+ 
+Sub var of process 0: 44.750000 
+Sub var of process 1: 26.750000 
+Sub var of process 2: 84.500000 
+Sub var of process 3: 26.500000 
+Sub var of process 4: 2.500000 
+Sub var of process 5: 42.500000 
+Var of array: 227.500000 
+
+Array D: 
+
+Process 0: 144 
+Process 0: 100 
+Process 0: 64 
+Process 1: 36 
+Process 1: 16 
+Process 1: 4 
+Process 2: 0 
+Process 2: 169 
+Process 3: 121 
+Process 3: 81 
+Process 4: 49 
+Process 4: 25 
+Process 5: 9 
+Process 5: 1 
+
+ 
+Menu: 
+1. Continue 
+2. Exit 
+
+Type a choice: 
+1
+
+Type total numbers for calculation, until 100 numbers 
+12
+
+Type 12 integer numbers 
+1
+3
+5
+7
+9
+11
+2
+4
+6
+8
+10
+12
+
+Process 0 calculate the average of 12 numbers 
+Process 0 calculate the maximum number of 12 numbers 
+ 
+Sum of process 0: 4 
+Max of process 0: 3 
+ 
+Sum of process 1: 12 
+Max of process 1: 7 
+
+Sum of process 2: 20 
+Max of process 2: 11 
+
+Sum of process 3: 6 
+Max of process 3: 4 
+
+Sum of process 4: 14 
+Max of process 4: 8 
+
+Sum of process 5: 22 
+Max of process 5: 12 
+
+Average of array: 6.500000 
+Final max of array: 12 
+ 
+Sub var of process 0: 42.500000 
+Sub var of process 1: 2.500000 
+Sub var of process 2: 26.500000 
+Sub var of process 3: 26.500000 
+Sub var of process 4: 2.500000 
+Sub var of process 5: 42.500000 
+Var of array: 143.000000 
+
+Array D: 
+
+Process 0: 121 
+Process 0: 81 
+Process 1: 49 
+Process 1: 25 
+Process 2: 9 
+Process 2: 1 
+Process 3: 100 
+Process 3: 64 
+Process 4: 36 
+Process 4: 16 
+Process 5: 4 
+Process 5: 0 
+
+ 
+Menu: 
+1. Continue 
+2. Exit 
+
+Type a choice: 
+1
+
+Type total numbers for calculation, until 100 numbers 
+20
+
+Type 20 integer numbers 
+19
+17
+15
+13
+11
+9
+7
+5
+3
+1
+0
+20
+18
+16
+14
+12
+10
+8
+6
+4
+
+Process 0 calculate the average of 20 numbers 
+Process 0 calculate the maximum number of 20 numbers 
+ 
+Sum of process 0: 64 
+Max of process 0: 19 
+ 
+Sum of process 1: 32 
+Max of process 1: 11 
+
+Sum of process 2: 4 
+Max of process 2: 3 
+
+Sum of process 3: 54 
+Max of process 3: 20 
+
+Sum of process 4: 36 
+Max of process 4: 14 
+
+Sum of process 5: 18 
+Max of process 5: 8 
+
+Average of array: 10.400000 
+Final max of array: 20 
+ 
+Sub var of process 0: 145.440000 
+Sub var of process 1: 43.040000 
+Sub var of process 2: 251.280000 
+Sub var of process 3: 181.280000 
+Sub var of process 4: 15.680000 
+Sub var of process 5: 66.080000 
+Var of array: 702.800000 
+
+Array D: 
+
+Process 0: 1 
+Process 0: 9 
+Process 0: 25 
+Process 0: 49 
+Process 1: 81 
+Process 1: 121 
+Process 1: 169 
+Process 1: 225 
+Process 2: 289 
+Process 2: 361 
+Process 2: 400 
+Process 3: 0 
+Process 3: 4 
+Process 3: 16 
+Process 4: 36 
+Process 4: 64 
+Process 4: 100 
+Process 5: 144 
+Process 5: 196 
+Process 5: 256 
+
+ 
+Menu: 
+1. Continue 
+2. Exit 
+
+Type a choice: 
+2
+
+
+ΟΛΑ ΤΑ ΕΡΩΤΗΜΑΤΑ ΕΙΝΑΙ ΑΠΑΝΤΗΜΕΝΑ 100%.
