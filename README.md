@@ -3,6 +3,9 @@ Parallel programming using library MPI
 
 You need to download the MPI library. It is not installed with compiler gcc.
 
+The configuration file c_cpp_configurations.json is used in order to appear functions of MPI in different editors like VS Code.
+Some editors have not extension of MPI library like VS Code. You need to use a configuration file.
+
 We use the file myhosts when we are running amount processes greater than total cores of computer.
 We declare the amount of localhosts.
 
