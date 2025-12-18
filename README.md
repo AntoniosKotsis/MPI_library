@@ -1,6 +1,7 @@
 # MPI_library
 Parallel programming using library MPI
 
+You need to download the MPI library. It is not installed with compiler gcc.
 
 We use the file myhosts when we are running amount processes greater than total cores of computer.
 We declare the amount of localhosts.
