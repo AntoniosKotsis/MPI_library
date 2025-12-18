@@ -5,7 +5,7 @@ Parallel programming using library MPI
 We use the file myhosts when we are running amount processes greater than total cores of computer.
 We declare the amount of localhosts.
 
-compile: mpicc exercise.c -o exercise -lm -Wall
+- compile: mpicc exercise.c -o exercise -lm -Wall
 -lm is parameter for library math
 run: mpirun -np 4 --hostfile myhosts ./exercise OR mpiexec -n 4 --hostfile myhosts ./exercise
 4 is amount of processes.
