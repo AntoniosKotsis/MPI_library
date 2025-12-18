@@ -7,6 +7,7 @@ We declare the amount of localhosts.
 
 - compile: mpicc exercise.c -o exercise -lm -Wall
 - -lm is parameter for library math
+- -Wall appears all warnings 
 - run: mpirun -np 4 --hostfile myhosts ./exercise OR mpiexec -n 4 --hostfile myhosts ./exercise
 - 4 is amount of processes.
 
